@@ -20,13 +20,12 @@ func main() {
 		adrress := new(net.TCPAddr)
 		adrress.IP = net.ParseIP("127.0.0.1")
 		adrress.Port = 8000
-		msg := "AHHAHAHAHHHAHA"
 
-		err := gob.NewEncoder(&buf).Encode(network.Message{msg})
+		err := gob.NewEncoder(&buf).Encode(network.Message{true,15,28		})
 		if err != nil {
 			// handle error
 		}
-		time.Sleep(1*time.Second) //simulates network delay of artificialNetworkDelay milliseconds
+		time.Sleep(2*time.Second) //simulates network delay of artificialNetworkDelay milliseconds
 		network.ClientWriter(adrress, buf)
 	}
 }

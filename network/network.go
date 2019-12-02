@@ -9,11 +9,11 @@ import (
 	"os"
 )
 
-type client chan<- string // an outgoing message channel
+type client chan<- Message // an outgoing message channel
 var (
 	entering = make(chan client)
 	leaving  = make(chan client)
-	messages = make(chan string) // all incoming client messages
+	messages = make(chan Message) // all incoming client messages
 )
 
 type Message struct{
@@ -45,7 +45,7 @@ func ClientWriter(address *net.TCPAddr,buf bytes.Buffer) {
 	<-done // wait for background goroutine to finish
 }
 
-func ClientReader(address *net.TCPAddr) {
+func ClientReader(address *net.TCPAddr,message chan Message) {
 	// error testing suppressed to compact listing on slides
 
 	listener, err := net.ListenTCP("tcp", address)
@@ -60,7 +60,7 @@ func ClientReader(address *net.TCPAddr) {
 			log.Print(err)
 			continue
 		}
-		go handleConn(conn)
+		go handleConn(conn,message)
 	}
 }
 func broadcaster() {
@@ -84,44 +84,37 @@ func broadcaster() {
 	}
 }
 
-func handleConn(conn *net.TCPConn) {
-	ch := make(chan string) // channel 'client' mais utilisé ici dans les 2 sens
+func handleConn(conn *net.TCPConn,message chan Message) {
+	ch := make(chan Message) // channel 'client' mais utilisé ici dans les 2 sens
 	go func() {             // clientwriter
 		for msg := range ch { // clientwriter <- broadcaster, handleConn
-			fmt.Fprintln(os.Stdout, msg) // netcat Client <- clientwriter
+			fmt.Fprintln(os.Stdout, msg.Id)
+			message <-msg// netcat Client <- clientwriter
+
 		}
 	}()
 
-	who := conn.RemoteAddr().String()
-	ch <- "You are " + who           // clientwriter <- handleConn
-	messages <- who + " has arrived" // broadcaster <- handleConn
+	//who := conn.RemoteAddr().String()
+	//ch <- "You are " + who           // clientwriter <- handleConn
+	//messages <- who + " has arrived" // broadcaster <- handleConn
 	entering <- ch
 
 
-	messages <- who + ": " + decrypt(conn).Msg // broadcaster <- handleConn
-
+	//messages <- who + ": " + strconv.FormatInt(int64(decrypt(conn).Id), 10) // broadcaster <- handleConn
+	messages <- decrypt(conn)
 	leaving <- ch
-	messages <- who + " has left" // broadcaster <- handleConn
+	//messages <- who + " has left" // broadcaster <- handleConn
 	conn.Close()
 }
+
 
 func decrypt(conn *net.TCPConn) Message {
 
 	buf := make([]byte, 1024)
 
 
-	//input := bufio.NewScanner(conn)
-	//
-	//for input.Scan() { // handleConn <- netcat client
-	//	buf = input.Bytes()
-	//}
-
 	n,_ := conn.Read(buf) // n,addr, err := p.ReadFrom(buf)
-	//
-	//
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
+
 
 	var msg Message
 	if err := gob.NewDecoder(bytes.NewReader(buf[:n])).Decode(&msg); err != nil {
