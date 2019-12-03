@@ -1,6 +1,7 @@
 package main
 
 import (
+	"../config"
 	"../mutex"
 	"bufio"
 	"fmt"
@@ -14,13 +15,22 @@ var sharedValue  int64 = 0
 
 func main() {
 
+	args := os.Args[1:]
+
+	if len(args)!=1{
+		fmt.Println(len(args))
+	}
+
+	id,_ := strconv.Atoi(args[0])
+	fmt.Println(id)
 		request:= make(chan bool)
 		wait := make(chan bool)
 		end := make(chan int64)
 		valcnannel := make(chan int64)
+		config.SetConfiguration()
 
 	go changeSharedValue(valcnannel)
-	go mutex.Run(request,wait,end,valcnannel,0)
+	go mutex.Run(request,wait,end,valcnannel,uint(id))
 
 	<-wait
 
