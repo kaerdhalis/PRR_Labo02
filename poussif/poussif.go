@@ -20,7 +20,7 @@ func main() {
 	valcnannel := make(chan int64)
 
 	go changeSharedValue(valcnannel)
-	go mutex.Run(request,wait,end,valcnannel,1)
+	go mutex.Run(request,wait,end,valcnannel,3)
 
 	<-wait
 

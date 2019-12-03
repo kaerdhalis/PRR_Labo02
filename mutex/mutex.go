@@ -2,7 +2,7 @@ package mutex
 
 import (
 	"../network"
-	"../configuration"
+	"../config"
 	"bytes"
 	"encoding/gob"
 	"fmt"
@@ -26,13 +26,12 @@ var(
 func Run(request chan bool,wait chan bool,end chan int64,valchannel chan int64,processId uint) {
 
 	id = processId
-	var localAdrr = configuration.GetAdressById(id)
+	var localAdrr = config.GetAdressById(id)
 
-	fmt.Println(localAdrr.String())
 	networkMsg := make(chan network.Message)
 	sharedVal := make(chan network.SharedValueMessage)
 
-	for i:=0 ;i<int(configuration.GetNumberOfProc()) ;i++ {
+	for i:=0 ;i<int(config.GetNumberOfProc()) ;i++ {
 
 		if uint(i) != id {
 
@@ -40,7 +39,6 @@ func Run(request chan bool,wait chan bool,end chan int64,valchannel chan int64,p
 		}
 	}
 
-	//faire un ping avec dialTimeout
 
 	go network.ClientReader(localAdrr,networkMsg,sharedVal)
 
@@ -70,10 +68,6 @@ func Run(request chan bool,wait chan bool,end chan int64,valchannel chan int64,p
 				valchannel <- val.SharedValue
 
 
-
-			
-
-
 		}
 
 
@@ -83,10 +77,8 @@ func Run(request chan bool,wait chan bool,end chan int64,valchannel chan int64,p
 }
  func requestHandle(){
 
-
- 	fmt.Println(len(pWait))
+	 h += 1
  	pendingReq = true
- 	h +=1
  	hReq = h
  	for  i := 0;i< len(pWait);i++{
 
@@ -102,16 +94,15 @@ func Run(request chan bool,wait chan bool,end chan int64,valchannel chan int64,p
  func endHandle(){
 
 	h = h+1
-	pendingReq= false
 	cs = false
-
-	pWait = pDiff
+	pendingReq= false
 	for i:= 0;i< len(pDiff);i++ {
 		if pDiff[i] != id {
 
 		sendMessage(h, pDiff[i], OK)
 	}
 	}
+	pWait = pDiff
 	pDiff = nil
 
  }
@@ -123,12 +114,14 @@ func Run(request chan bool,wait chan bool,end chan int64,valchannel chan int64,p
 	if pendingReq==false{
 		sendMessage(rqst.Hi,rqst.Id,OK)
 		pWait = append(pWait,rqst.Id)
+
 	}else if cs || (hReq< rqst.Hi)|| (hReq == rqst.Hi && id < rqst.Id ) {
 		pDiff = append(pDiff,rqst.Id)
+
 	} else {
 		sendMessage(h,rqst.Id,OK)
 		pWait = append(pWait,rqst.Id)
-		sendMessage(hReq,id,REQ)
+		sendMessage(hReq,rqst.Id,REQ)
 	}
 
  }
@@ -138,12 +131,15 @@ func Run(request chan bool,wait chan bool,end chan int64,valchannel chan int64,p
 
 
 	 h = max(ok.Hi,h)+1
- 	var i =0
- 	for pWait[i] != ok.Id{
- 		i++
-	 }
-	 pWait = append(append(pWait[:i], pWait[i+1:]...))
-	fmt.Println(len(pWait))
+
+ 	for i :=0;i< len(pWait);i++{
+
+ 		if pWait[i] == ok.Id{
+
+			pWait = append(append(pWait[:i], pWait[i+1:]...))
+		}
+	}
+
 	 if len(pWait)==0 {
 	 	cs = true
 	 	wait<-true
@@ -154,7 +150,7 @@ func Run(request chan bool,wait chan bool,end chan int64,valchannel chan int64,p
 func sendMessage(hi uint,procesId uint,messageType bool){
 
 	var buf bytes.Buffer
-	var adress = configuration.GetAdressById(procesId)
+	var adress = config.GetAdressById(procesId)
 
 	if err := gob.NewEncoder(&buf).Encode(network.Message{MsgType:messageType,Id:id,Hi:hi}); err != nil {
 		// handle error
@@ -174,10 +170,10 @@ func max(x, y uint) uint {
 
 func checkAllProcessAreReady(){
 
-	for i:=0 ;i<int(configuration.GetNumberOfProc()) ;i++ {
+	for i:=0 ;i<int(config.GetNumberOfProc()) ;i++ {
 
 		if uint(i) != id {
-		network.PingAdress(configuration.GetAdressById(uint(i)), uint(i))
+		network.PingAdress(config.GetAdressById(uint(i)), uint(i))
 	}
 	}
 
@@ -189,10 +185,10 @@ func transmitSharedValue(value int64){
 
 	var buf bytes.Buffer
 
-	for i:=0 ;i<int(configuration.GetNumberOfProc()) ;i++  {
+	for i:=0 ;i<int(config.GetNumberOfProc()) ;i++  {
 		buf.Reset()
 
-		var adress = configuration.GetAdressById(uint(i))
+		var adress = config.GetAdressById(uint(i))
 
 		if err := gob.NewEncoder(&buf).Encode(network.SharedValueMessage{value}); err != nil {
 			// handle error

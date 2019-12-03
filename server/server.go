@@ -1,16 +1,30 @@
 package main
 
 import (
-	"../network"
-	"net"
+	"../config"
+	"fmt"
 )
+
+
+type ipAdress struct {
+
+	adress string
+	port uint
+
+}
+
+type configuration struct {
+	NumberOfProcesses int
+	adresses []ipAdress
+}
+
 
 func main() {
 
-	adrress := new(net.TCPAddr)
-	adrress.IP = net.ParseIP("127.0.0.1")
-	adrress.Port = 8000
 
-	network.ClientReader(adrress)
-	
+	var conf config.Configuration
+	conf = config.SetConfiguration()
+
+	fmt.Println(conf.NumberOfProcesses)
+
 }
