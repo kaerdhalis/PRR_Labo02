@@ -111,11 +111,18 @@ func handleConn(conn *net.TCPConn,message chan Message,value chan SharedValueMes
 
 	var msg Message
 	var val SharedValueMessage
-	if err := gob.NewDecoder(bytes.NewReader(buf[:n])).Decode(&msg); err == nil {
-		message<-msg
-	}else if err := gob.NewDecoder(bytes.NewReader(buf[:n])).Decode(&val); err == nil{
+	//if err := gob.NewDecoder(bytes.NewReader(buf[:n])).Decode(&msg); err == nil {
+	//	message<-msg
+	//}else if err := gob.NewDecoder(bytes.NewReader(buf[:n])).Decode(&val); err == nil{
+	//
+	//	value <- val
+	//}
+
+	if err := gob.NewDecoder(bytes.NewReader(buf[:n])).Decode(&val); err == nil {
 
 		value <- val
+	}else if err := gob.NewDecoder(bytes.NewReader(buf[:n])).Decode(&msg); err == nil {
+		message<-msg
 	}
 	leaving <- ch
 	//messages <- who + " has left" // broadcaster <- handleConn

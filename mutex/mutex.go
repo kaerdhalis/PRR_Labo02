@@ -32,9 +32,12 @@ func Run(request chan bool,wait chan bool,end chan int64,valchannel chan int64,p
 	networkMsg := make(chan network.Message)
 	sharedVal := make(chan network.SharedValueMessage)
 
-	for i:=0 ;i<int(configuration.GetNumberOfProc()) ;i++  {
+	for i:=0 ;i<int(configuration.GetNumberOfProc()) ;i++ {
 
-		pWait= append(pWait,uint(i))
+		if uint(i) != id {
+
+		pWait = append(pWait, uint(i))
+		}
 	}
 
 	//faire un ping avec dialTimeout
@@ -61,9 +64,12 @@ func Run(request chan bool,wait chan bool,end chan int64,valchannel chan int64,p
 				if msg.MsgType ==REQ {
 					requestTraitement(msg)
 				}else  {
-					fmt.Printf("msg")
 					okTraitement(msg,wait)
 				}
+			case val :=<- sharedVal:
+				valchannel <- val.SharedValue
+
+
 
 			
 
@@ -77,13 +83,15 @@ func Run(request chan bool,wait chan bool,end chan int64,valchannel chan int64,p
 }
  func requestHandle(){
 
+
+ 	fmt.Println(len(pWait))
  	pendingReq = true
  	h +=1
  	hReq = h
  	for  i := 0;i< len(pWait);i++{
- 		if uint (i) != id {
-			fmt.Println("request sending")
-			fmt.Println(i)
+
+
+ 		if pWait[i] != id {
 			sendMessage(hReq,pWait[i],REQ)
 		}
 
@@ -98,8 +106,11 @@ func Run(request chan bool,wait chan bool,end chan int64,valchannel chan int64,p
 	cs = false
 
 	pWait = pDiff
-	for i:= 0;i< len(pDiff);i++{
-		sendMessage(h,pDiff[i],OK)
+	for i:= 0;i< len(pDiff);i++ {
+		if pDiff[i] != id {
+
+		sendMessage(h, pDiff[i], OK)
+	}
 	}
 	pDiff = nil
 
@@ -107,8 +118,6 @@ func Run(request chan bool,wait chan bool,end chan int64,valchannel chan int64,p
 
  func requestTraitement(rqst network.Message){
 
-	fmt.Println("pass here")
-	fmt.Printf("value = %d %d %t",rqst.Id,rqst.Hi,rqst.MsgType)
 
 	h = max(rqst.Hi,h)+1
 	if pendingReq==false{
@@ -127,8 +136,6 @@ func Run(request chan bool,wait chan bool,end chan int64,valchannel chan int64,p
  func okTraitement(ok network.Message, wait chan bool){
 
 
- 	fmt.Printf("pass dans ok\n")
-
 
 	 h = max(ok.Hi,h)+1
  	var i =0
@@ -136,7 +143,7 @@ func Run(request chan bool,wait chan bool,end chan int64,valchannel chan int64,p
  		i++
 	 }
 	 pWait = append(append(pWait[:i], pWait[i+1:]...))
-
+	fmt.Println(len(pWait))
 	 if len(pWait)==0 {
 	 	cs = true
 	 	wait<-true
@@ -178,6 +185,7 @@ func checkAllProcessAreReady(){
 }
 
 func transmitSharedValue(value int64){
+
 
 	var buf bytes.Buffer
 

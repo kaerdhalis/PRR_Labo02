@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var sharedValue  int64 = 0
@@ -58,6 +59,8 @@ func main() {
 
 			sharedValue = int64(newValue)
 			fmt.Printf("new value is set to %d\n",sharedValue)
+
+			time.Sleep(10*time.Second)
 
 			end <-sharedValue
 		}
