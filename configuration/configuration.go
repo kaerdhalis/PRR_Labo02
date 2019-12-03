@@ -10,6 +10,8 @@ const defaultPort = 5555
 var adresses[] string
 var ports[] uint
 
+var numberOfProc uint
+
 func GetAdressById(id uint) *net.TCPAddr{
 
 	var adress string
@@ -30,5 +32,10 @@ func GetAdressById(id uint) *net.TCPAddr{
 	localAdrr.Port =int(port)
 
 	return localAdrr
+}
+
+func GetNumberOfProc() uint{
+
+	return numberOfProc
 }
 

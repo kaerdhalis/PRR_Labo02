@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"time"
 )
 
 type client chan<- Message // an outgoing message channel
@@ -21,6 +22,10 @@ type Message struct{
 	MsgType bool
 	Id uint
 	Hi uint
+}
+
+type SharedValueMessage struct {
+	SharedValue int64
 }
 
 
@@ -123,4 +128,21 @@ func decrypt(conn *net.TCPConn) Message {
 
 	return msg
 
+}
+
+func PingAdress(address *net.TCPAddr,id uint) {
+
+	timeout := time.Duration(1 * time.Second)
+	for {
+
+		_, err := net.DialTimeout("tcp", address.String(), timeout)
+		if err != nil {
+			log.Println("Site unreachable, error: ", err)
+
+		} else {
+
+			fmt.Printf("Processus %d is Up and Ready",id)
+			break
+		}
+	}
 }
