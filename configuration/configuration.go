@@ -22,7 +22,7 @@ func GetAdressById(id uint) *net.TCPAddr{
 		port = ports[id]
 	} else {
 
-		adress = localAdress
+		adress = "127.0.0.1"
 		port = defaultPort + id
 
 	}
@@ -36,6 +36,7 @@ func GetAdressById(id uint) *net.TCPAddr{
 
 func GetNumberOfProc() uint{
 
-	return numberOfProc
+	//return numberOfProc
+	return 2
 }
 

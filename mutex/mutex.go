@@ -23,11 +23,14 @@ var(
 	 pWait []uint
 )
 
-func run(request chan bool,wait chan bool,end chan bool,processId uint) {
+func Run(request chan bool,wait chan bool,end chan int64,valchannel chan int64,processId uint) {
 
 	id = processId
 	var localAdrr = configuration.GetAdressById(id)
-	var networkMsg chan network.Message
+
+	fmt.Println(localAdrr.String())
+	networkMsg := make(chan network.Message)
+	sharedVal := make(chan network.SharedValueMessage)
 
 	for i:=0 ;i<int(configuration.GetNumberOfProc()) ;i++  {
 
@@ -36,7 +39,7 @@ func run(request chan bool,wait chan bool,end chan bool,processId uint) {
 
 	//faire un ping avec dialTimeout
 
-	go network.ClientReader(localAdrr,networkMsg)
+	go network.ClientReader(localAdrr,networkMsg,sharedVal)
 
 	checkAllProcessAreReady()
 
@@ -47,17 +50,18 @@ func run(request chan bool,wait chan bool,end chan bool,processId uint) {
 		select {
 		
 			case <- request:
-				fmt.Println("demande acces a la section crittique")
 				requestHandle()
 
-			case <-end:
-				fmt.Println("sortie de la section critique")
+			case newValue:=<-end:
+
+				transmitSharedValue(newValue)
 				endHandle()
 
 			case msg:=<-networkMsg:
 				if msg.MsgType ==REQ {
 					requestTraitement(msg)
 				}else  {
+					fmt.Printf("msg")
 					okTraitement(msg,wait)
 				}
 
@@ -77,8 +81,12 @@ func run(request chan bool,wait chan bool,end chan bool,processId uint) {
  	h +=1
  	hReq = h
  	for  i := 0;i< len(pWait);i++{
+ 		if uint (i) != id {
+			fmt.Println("request sending")
+			fmt.Println(i)
+			sendMessage(hReq,pWait[i],REQ)
+		}
 
-		sendMessage(hReq,pWait[i],REQ)
 	 }
 
  }
@@ -99,6 +107,8 @@ func run(request chan bool,wait chan bool,end chan bool,processId uint) {
 
  func requestTraitement(rqst network.Message){
 
+	fmt.Println("pass here")
+	fmt.Printf("value = %d %d %t",rqst.Id,rqst.Hi,rqst.MsgType)
 
 	h = max(rqst.Hi,h)+1
 	if pendingReq==false{
@@ -116,7 +126,11 @@ func run(request chan bool,wait chan bool,end chan bool,processId uint) {
 
  func okTraitement(ok network.Message, wait chan bool){
 
- 	h = max(ok.Hi,h)+1
+
+ 	fmt.Printf("pass dans ok\n")
+
+
+	 h = max(ok.Hi,h)+1
  	var i =0
  	for pWait[i] != ok.Id{
  		i++
@@ -153,10 +167,30 @@ func max(x, y uint) uint {
 
 func checkAllProcessAreReady(){
 
-	for i:=0 ;i<int(configuration.GetNumberOfProc()) ;i++  {
+	for i:=0 ;i<int(configuration.GetNumberOfProc()) ;i++ {
 
-		network.PingAdress(configuration.GetAdressById(uint(i)),uint(i))
+		if uint(i) != id {
+		network.PingAdress(configuration.GetAdressById(uint(i)), uint(i))
+	}
 	}
 
 	fmt.Println("All Process are Ready")
+}
+
+func transmitSharedValue(value int64){
+
+	var buf bytes.Buffer
+
+	for i:=0 ;i<int(configuration.GetNumberOfProc()) ;i++  {
+		buf.Reset()
+
+		var adress = configuration.GetAdressById(uint(i))
+
+		if err := gob.NewEncoder(&buf).Encode(network.SharedValueMessage{value}); err != nil {
+			// handle error
+		}
+		network.ClientWriter(adress,buf)
+
+	}
+
 }

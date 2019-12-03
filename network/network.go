@@ -39,7 +39,7 @@ func ClientWriter(address *net.TCPAddr,buf bytes.Buffer) {
 	go func() {
 
 		_, err  = conn.Write(buf.Bytes())// NOTE: ignoring errors
-		log.Println("done")
+		//log.Println("done")
 		done <- struct{}{} // signal the main goroutine
 	}()
 	if _, err := conn.Write(buf.Bytes()); err != nil {
@@ -50,7 +50,7 @@ func ClientWriter(address *net.TCPAddr,buf bytes.Buffer) {
 	<-done // wait for background goroutine to finish
 }
 
-func ClientReader(address *net.TCPAddr,message chan Message) {
+func ClientReader(address *net.TCPAddr,message chan Message,sharedValue chan SharedValueMessage) {
 	// error testing suppressed to compact listing on slides
 
 	listener, err := net.ListenTCP("tcp", address)
@@ -65,7 +65,7 @@ func ClientReader(address *net.TCPAddr,message chan Message) {
 			log.Print(err)
 			continue
 		}
-		go handleConn(conn,message)
+		go handleConn(conn,message,sharedValue)
 	}
 }
 func broadcaster() {
@@ -89,7 +89,7 @@ func broadcaster() {
 	}
 }
 
-func handleConn(conn *net.TCPConn,message chan Message) {
+func handleConn(conn *net.TCPConn,message chan Message,value chan SharedValueMessage) {
 	ch := make(chan Message) // channel 'client' mais utilisé ici dans les 2 sens
 	go func() {             // clientwriter
 		for msg := range ch { // clientwriter <- broadcaster, handleConn
@@ -103,17 +103,27 @@ func handleConn(conn *net.TCPConn,message chan Message) {
 	//ch <- "You are " + who           // clientwriter <- handleConn
 	//messages <- who + " has arrived" // broadcaster <- handleConn
 	entering <- ch
+	buf := make([]byte, 1024)
 
 
-	//messages <- who + ": " + strconv.FormatInt(int64(decrypt(conn).Id), 10) // broadcaster <- handleConn
-	messages <- decrypt(conn)
+	n,_ := conn.Read(buf) // n,addr, err := p.ReadFrom(buf)
+
+
+	var msg Message
+	var val SharedValueMessage
+	if err := gob.NewDecoder(bytes.NewReader(buf[:n])).Decode(&msg); err == nil {
+		message<-msg
+	}else if err := gob.NewDecoder(bytes.NewReader(buf[:n])).Decode(&val); err == nil{
+
+		value <- val
+	}
 	leaving <- ch
 	//messages <- who + " has left" // broadcaster <- handleConn
 	conn.Close()
 }
 
 
-func decrypt(conn *net.TCPConn) Message {
+func decrypt(conn *net.TCPConn,message chan Message,value chan SharedValueMessage) {
 
 	buf := make([]byte, 1024)
 
@@ -122,11 +132,14 @@ func decrypt(conn *net.TCPConn) Message {
 
 
 	var msg Message
-	if err := gob.NewDecoder(bytes.NewReader(buf[:n])).Decode(&msg); err != nil {
-		// handle error
+	var val SharedValueMessage
+	if err := gob.NewDecoder(bytes.NewReader(buf[:n])).Decode(&msg); err == nil {
+		message<-msg
+	}else if err := gob.NewDecoder(bytes.NewReader(buf[:n])).Decode(&val); err == nil{
+		
+		value <- val
 	}
-
-	return msg
+	
 
 }
 
@@ -135,14 +148,17 @@ func PingAdress(address *net.TCPAddr,id uint) {
 	timeout := time.Duration(1 * time.Second)
 	for {
 
-		_, err := net.DialTimeout("tcp", address.String(), timeout)
+		conn, err := net.DialTimeout("tcp", address.String(), timeout)
 		if err != nil {
-			log.Println("Site unreachable, error: ", err)
+			//log.Println("Site unreachable, error: ", err)
 
 		} else {
 
-			fmt.Printf("Processus %d is Up and Ready",id)
+			fmt.Printf("Processus %d is Up and Ready\n",id)
+			conn.Close()
 			break
+
+
 		}
 	}
 }
