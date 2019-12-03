@@ -2,7 +2,7 @@ package config
 
 import (
 	"encoding/json"
-	"log"
+	"fmt"
 	"net"
 	"os"
 )
@@ -12,46 +12,47 @@ const defaultPort = 5555
 
 var config configuration
 
-type ipAdress struct {
+type IpAdress struct {
 
-	ip string
-	port uint
+	Ip string
+	Port uint
 
 }
 
 type configuration struct {
-	numberOfProcesses uint
-	address []ipAdress
+	NumberOfProcesses uint
+	Address []IpAdress
 }
 
 func GetAdressById(id uint) *net.TCPAddr{
 
-	log.Println(config.numberOfProcesses)
-	log.Println("totot")
 	var localAdrr = new(net.TCPAddr)
-	localAdrr.IP = net.ParseIP(config.address[id].ip)
-	localAdrr.Port =int(config.address[id].port)
+	localAdrr.IP = net.ParseIP(config.Address[id].Ip)
+	localAdrr.Port =int(config.Address[id].Port)
 
 	return localAdrr
 }
 
 func SetConfiguration()  {
 
+
 	file, err:= os.Open("src/config/config.json")
 
 	if err != nil{
-		log.Println(err)
+		fmt.Println(err)
 	}
 
 	decoder := json.NewDecoder(file)
 	err = decoder.Decode(&config)
 	if err != nil{
-		log.Println(err)
+		fmt.Println(err)
 	}
+
 }
 
 func GetNumberOfProc() uint{
 
-	return config.numberOfProcesses
+	//return config.NumberOfProcesses
+	return 2
 }
 

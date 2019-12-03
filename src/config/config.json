@@ -1,5 +1,5 @@
 {
-  "numberOfProcesses": 10,
+  "NumberOfProcesses": 10,
   "address": [
     {"ip":"127.0.0.1","port": 5555},
     {"ip":"127.0.0.1","port": 5556},
