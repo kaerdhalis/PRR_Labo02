@@ -81,7 +81,7 @@ func main() {
 
 			config.SetTransmitdelay(delay)
 
-			fmt.Printf("\n new delay is set to %f seconds\n",config.GetTransmitDelay())
+			fmt.Printf("\nnew delay is set to %f seconds\n\n",config.GetTransmitDelay())
 
 			break
 
