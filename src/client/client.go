@@ -54,7 +54,7 @@ func main() {
 
 	for{
 		reader := bufio.NewReader(os.Stdin)
-		fmt.Println("Enter (r) to Read or (w <value>) to change sharedValue:")
+		fmt.Println("Enter (r) to Read or (w <value>) to change sharedValue, (d <time>) to change the artifical delay:")
 		fmt.Print(">")
 
 		//read the imput and ignore UperCase
@@ -67,6 +67,22 @@ func main() {
 		case "r":
 
 			fmt.Printf("sharedValue = %d\n",sharedValue)
+			break
+
+		case "d":
+
+			delay, err := strconv.ParseFloat(tokens[1], 64)
+
+			if err != nil || delay <0{
+
+				fmt.Println("Wrong Argument: delay must be a positive float \n")
+				break
+			}
+
+			config.SetTransmitdelay(delay)
+
+			fmt.Printf("\n new delay is set to %f seconds\n",config.GetTransmitDelay())
+
 			break
 
 		case "w":

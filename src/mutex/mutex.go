@@ -15,6 +15,7 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
+	"time"
 )
 
 const(
@@ -171,6 +172,8 @@ func Run(request chan bool,wait chan bool,end chan int64,valchannel chan int64,p
 
 
  func sendMessage(hi uint,procesId uint,messageType bool){
+
+ 	time.Sleep(time.Duration(config.GetTransmitDelay()) * time.Second)
 
 	var buf bytes.Buffer
 	var adress = config.GetAdressById(procesId)
