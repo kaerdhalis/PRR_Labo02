@@ -22,6 +22,7 @@ type IpAdress struct {
 type configuration struct {
 	NumberOfProcesses uint
 	Address []IpAdress
+	ArtificialDelay uint
 }
 
 func GetAdressById(id uint) *net.TCPAddr{
@@ -52,7 +53,12 @@ func SetConfiguration()  {
 
 func GetNumberOfProc() uint{
 
-	//return config.NumberOfProcesses
-	return 2
+	return config.NumberOfProcesses
+
+}
+
+func GetArtificialDelay() uint{
+
+	return config.ArtificialDelay
 }
 

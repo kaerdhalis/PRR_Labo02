@@ -1,8 +1,18 @@
+/**
+ * Title: 			Labo2 - Mutual exclusion
+ * File:			client.go
+ * Date:			20.11.12
+ * Authors:			Le Guillou Benjamin, Reis de Carvalho Luca
+ *
+ * Description:		File containing the mutex side of the process. It implements the Carvalho & Roucairol algorithm and
+ * 					manages the interaction with the network side of the process
+ */
+
 package mutex
 
 import (
-	"../network"
 	"../config"
+	"../network"
 	"bytes"
 	"encoding/gob"
 	"fmt"
@@ -13,18 +23,18 @@ const(
 	OK = true
 )
 var(
-	 n uint = 0
-	 id uint = 0
-	 h uint = 0
-	 pendingReq = false
-	 cs = false
-	 hReq uint= 0
-	 pDiff []uint
-	 pWait []uint
+	 id uint = 0 //Id of the process
+	 h uint =  0 //timestamp
+	 pendingReq = false //used to check if process is requesting critical section
+	 cs = false //used to know if the process is in the critical section
+	 hReq uint= 0 //timestamp of the request to access the critical section
+	 pDiff []uint //array containing the differed processes
+	 pWait []uint //array containg the processes on which it wait an OK
 )
 
 func Run(request chan bool,wait chan bool,end chan int64,valchannel chan int64,processId uint) {
 
+	//get the id of the process from the client
 	id = processId
 	var localAdrr = config.GetAdressById(id)
 

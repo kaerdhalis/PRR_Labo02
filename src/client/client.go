@@ -1,3 +1,12 @@
+/**
+ * Title: 			Labo2 - Mutual exclusion
+ * File:			client.go
+ * Date:			20.11.12
+ * Authors:			Le Guillou Benjamin, Reis de Carvalho Luca
+ *
+ * Description:		File containing the client side of the process. It can read the inputs of the users and read or
+ *                  modify the shared value.
+ */
 package main
 
 import (
@@ -5,87 +14,98 @@ import (
 	"../mutex"
 	"bufio"
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 )
 
+//global value shared by all the processes
 var sharedValue  int64 = 0
 
 func main() {
 
+	//read the id of the process passed in argument
 	args := os.Args[1:]
 
 	if len(args)!=1{
-		fmt.Println(len(args))
+		log.Fatal("Number of arguments invalid, you need to pass the id of the Process")
 	}
-
 	id,_ := strconv.Atoi(args[0])
-	fmt.Println(id)
-		request:= make(chan bool)
-		wait := make(chan bool)
-		end := make(chan int64)
-		valcnannel := make(chan int64)
-		config.SetConfiguration()
 
-	go changeSharedValue(valcnannel)
-	go mutex.Run(request,wait,end,valcnannel,uint(id))
+	//channel to communicate to the mutex
+	request:= make(chan bool)
+	wait := make(chan bool)
+	end := make(chan int64)
+	valueChannel := make(chan int64)
 
+	//get the global configuration of the application
+	config.SetConfiguration()
+
+
+	go changeSharedValue(valueChannel)
+
+	//launch the mutex
+	go mutex.Run(request,wait,end,valueChannel,uint(id))
+
+	//wait for the server to be launched and the other processes to be up to start reading inputs
 	<-wait
 
 	for{
-
 		reader := bufio.NewReader(os.Stdin)
 		fmt.Println("Enter (r) to Read or (w <value>) to change sharedValue:")
 		fmt.Print(">")
 
+		//read the imput and ignore UperCase
 		value, _ := reader.ReadString('\n')
 		value = strings.ToLower(value[:len(value)-1])
-
 		tokens := strings.Split(value, " ")
 
 		switch tokens[0] {
 
 		case "r":
+
 			fmt.Printf("sharedValue = %d\n",sharedValue)
 			break
 
 		case "w":
+
 			newValue, err := strconv.ParseInt(tokens[1], 10, 64)
 
 			if err != nil{
 
-				fmt.Println("new value must be an integer \n")
+				fmt.Println("Wrong Argument: new value must be an integer \n")
 				break
 			}
 
-			fmt.Println("requesting critical section")
+			fmt.Println("requesting critical section\n")
+			//send a request to the mutex
 			request<-true
 
+			//wait for the critical section
 			<-wait
 			fmt.Println("entering crtical section")
-			fmt.Printf("previous sharedValue = %d\n",sharedValue)
+			fmt.Printf("\nprevious sharedValue = %d\n",sharedValue)
 
 			sharedValue = int64(newValue)
-			fmt.Printf("new value is set to %d\n",sharedValue)
+			fmt.Printf("\nnew value is set to %d\n",sharedValue)
 
-			time.Sleep(10*time.Second)
+			fmt.Println("***Doing others artificial stuffs in critical sectin***")
+			time.Sleep(time.Duration(config.GetArtificialDelay()) * time.Second)
 
+			//send the new sharedValue to the mutex and leave critical section
 			end <-sharedValue
 		}
-
-
 	}
-
-
-
 }
 
-func changeSharedValue(valchannel chan int64 ) {
+//Function used to update the shared value if modified by an other process
+func changeSharedValue(valueChannel chan int64 ) {
+
 	for {
 
-		value:= <-valchannel
+		value:= <-valueChannel
 		sharedValue = value
 	}
 }
