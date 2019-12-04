@@ -79,21 +79,23 @@ func main() {
 				break
 			}
 
-			fmt.Println("requesting critical section\n")
+			fmt.Println("\n***requesting critical section***\n")
 			//send a request to the mutex
 			request<-true
 
 			//wait for the critical section
 			<-wait
-			fmt.Println("entering crtical section")
+			fmt.Println("***entering crtical section***")
 			fmt.Printf("\nprevious sharedValue = %d\n",sharedValue)
 
 			sharedValue = int64(newValue)
-			fmt.Printf("\nnew value is set to %d\n",sharedValue)
+			fmt.Printf("\nnew value is set to %d\n\n",sharedValue)
 
-			fmt.Println("***Doing others artificial stuffs in critical sectin***")
+			fmt.Println("\n***Doing others artificial stuffs in critical section***\n")
 			time.Sleep(time.Duration(config.GetArtificialDelay()) * time.Second)
 
+
+			fmt.Println("***leaving critical section***\n")
 			//send the new sharedValue to the mutex and leave critical section
 			end <-sharedValue
 		}

@@ -1,3 +1,12 @@
+/**
+ * Title: 			Labo2 - Mutual exclusion
+ * File:			client.go
+ * Date:			20.11.12
+ * Authors:			Le Guillou Benjamin, Reis de Carvalho Luca
+ *
+ * Description:		File containing the network side of the process. It contains the adress of every process and other
+ *                  values like the waiting time in the critical section
+ */
 package network
 
 import (
@@ -17,6 +26,7 @@ var (
 	messages = make(chan Message) // all incoming client messages
 )
 
+//struct containing the REQ and Ok messages
 type Message struct{
 
 	MsgType bool
@@ -24,10 +34,11 @@ type Message struct{
 	Hi uint
 }
 
+//struct containing the sharedValue message
 type SharedValueMessage struct {
+
 	SharedValue int64
 }
-
 
 func ClientWriter(address *net.TCPAddr,buf bytes.Buffer) {
 
@@ -38,10 +49,11 @@ func ClientWriter(address *net.TCPAddr,buf bytes.Buffer) {
 	done := make(chan struct{})
 	go func() {
 
-		_, err  = conn.Write(buf.Bytes())// NOTE: ignoring errors
-		//log.Println("done")
+		_, err  = conn.Write(buf.Bytes())
+
 		done <- struct{}{} // signal the main goroutine
 	}()
+
 	if _, err := conn.Write(buf.Bytes()); err != nil {
 		log.Fatal(err)
 	}
@@ -51,7 +63,7 @@ func ClientWriter(address *net.TCPAddr,buf bytes.Buffer) {
 }
 
 func ClientReader(address *net.TCPAddr,message chan Message,sharedValue chan SharedValueMessage) {
-	// error testing suppressed to compact listing on slides
+
 
 	listener, err := net.ListenTCP("tcp", address)
 	if err != nil {
@@ -59,16 +71,20 @@ func ClientReader(address *net.TCPAddr,message chan Message,sharedValue chan Sha
 	}
 
 	go broadcaster()
+
 	for {
+
 		conn, err := listener.AcceptTCP()
 		if err != nil {
 			log.Print(err)
 			continue
 		}
+
 		go handleConn(conn,message,sharedValue)
 	}
 }
 func broadcaster() {
+
 	clients := make(map[client]bool) // all connected clients
 	for {
 		select {
@@ -90,18 +106,15 @@ func broadcaster() {
 }
 
 func handleConn(conn *net.TCPConn,message chan Message,value chan SharedValueMessage) {
+
 	ch := make(chan Message) // channel 'client' mais utilisé ici dans les 2 sens
 	go func() {             // clientwriter
 		for msg := range ch { // clientwriter <- broadcaster, handleConn
 			fmt.Fprintln(os.Stdout, msg.Id)
 			message <-msg// netcat Client <- clientwriter
-
 		}
 	}()
 
-	//who := conn.RemoteAddr().String()
-	//ch <- "You are " + who           // clientwriter <- handleConn
-	//messages <- who + " has arrived" // broadcaster <- handleConn
 	entering <- ch
 	buf := make([]byte, 1024)
 
@@ -111,13 +124,8 @@ func handleConn(conn *net.TCPConn,message chan Message,value chan SharedValueMes
 
 	var msg Message
 	var val SharedValueMessage
-	//if err := gob.NewDecoder(bytes.NewReader(buf[:n])).Decode(&msg); err == nil {
-	//	message<-msg
-	//}else if err := gob.NewDecoder(bytes.NewReader(buf[:n])).Decode(&val); err == nil{
-	//
-	//	value <- val
-	//}
 
+	//check the type of message and decrypt it
 	if err := gob.NewDecoder(bytes.NewReader(buf[:n])).Decode(&val); err == nil {
 
 		value <- val
@@ -125,47 +133,24 @@ func handleConn(conn *net.TCPConn,message chan Message,value chan SharedValueMes
 		message<-msg
 	}
 	leaving <- ch
-	//messages <- who + " has left" // broadcaster <- handleConn
+
 	conn.Close()
 }
 
-
-func decrypt(conn *net.TCPConn,message chan Message,value chan SharedValueMessage) {
-
-	buf := make([]byte, 1024)
-
-
-	n,_ := conn.Read(buf) // n,addr, err := p.ReadFrom(buf)
-
-
-	var msg Message
-	var val SharedValueMessage
-	if err := gob.NewDecoder(bytes.NewReader(buf[:n])).Decode(&msg); err == nil {
-		message<-msg
-	}else if err := gob.NewDecoder(bytes.NewReader(buf[:n])).Decode(&val); err == nil{
-		
-		value <- val
-	}
-	
-
-}
-
+// Create a connection with a process to check if its ready
 func PingAdress(address *net.TCPAddr,id uint) {
 
-	timeout := time.Duration(1 * time.Second)
+	timeout := 1 * time.Second
 	for {
 
 		conn, err := net.DialTimeout("tcp", address.String(), timeout)
 		if err != nil {
-			//log.Println("Site unreachable, error: ", err)
 
 		} else {
 
 			fmt.Printf("Processus %d is Up and Ready\n",id)
 			conn.Close()
 			break
-
-
 		}
 	}
 }
